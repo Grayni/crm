@@ -1,11 +1,15 @@
-from flask import Flask, flash, render_template, request, redirect
+from flask import Flask, flash, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from flask_session import Session
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///ums.sqlite"
 app.config['SECRET_KEY'] = "1a874f6bd0c7166d732b5acd"
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///ums.sqlite"
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_TYPE'] = 'filesystem'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+Session(app)
 
 
 # User Class
@@ -22,6 +26,10 @@ class User(db.Model):
     def __repr__(self):
         return f'User("{self.id}", "{self.lname}", "{self.fname}", "{self.email}", "{self.email}", "{self.username}", "{self.edu}", "{self.status}")'
 
+
+with app.app_context():
+    db.session.query(User).delete()
+    db.session.commit()
 
 # create table
 with app.app_context():
@@ -44,9 +52,32 @@ def adminIndex():
 # --------------- user area -----------------------
 
 # user login
-@app.route('/user/')
+@app.route('/user/', methods=['POST', 'GET'])
 def userIndex():
-    return render_template('user/index.html', title='User Login')
+    if request.method == "POST":
+        # get the name of the field
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        # check user exist in this email or not
+        users = User.query.filter_by(email=email).first()
+        if users and bcrypt.check_password_hash(users.password, password):
+            # check the admin approve your account are not
+            is_approve = User.query.filter_by(id=users.id).first()
+
+            if is_approve.status == 0:
+                flash('Your Account not approved by Admin', 'danger')
+                return redirect('/user/')
+            else:
+                session['user_id'] = users.id
+                session['username'] = users.username
+                flash('Login Successfully', 'success')
+                return redirect('/user/dashboard')
+        else:
+            flash('Invalid email or password', 'danger')
+            return redirect('/user/')
+    else:
+        return render_template('user/index.html', title='User Login')
 
 
 # user registration
@@ -79,6 +110,13 @@ def userSignup():
                 return redirect('/user/')
     else:
         return render_template('user/signup.html', title='User Signup')
+
+
+# user dashboard
+@app.route('/user/dashboard', methods=['POST', 'GET'])
+def userDashboard():
+    if session.get('username'):
+        return f'{session.get("username")}'
 
 
 if __name__ == "__main__":
