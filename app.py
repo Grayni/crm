@@ -27,10 +27,6 @@ class User(db.Model):
         return f'User("{self.id}", "{self.lname}", "{self.fname}", "{self.email}", "{self.email}", "{self.username}", "{self.edu}", "{self.status}")'
 
 
-with app.app_context():
-    db.session.query(User).delete()
-    db.session.commit()
-
 # create table
 with app.app_context():
     # create table
@@ -54,6 +50,8 @@ def adminIndex():
 # user login
 @app.route('/user/', methods=['POST', 'GET'])
 def userIndex():
+    if session.get('user_id'):
+        return redirect('/user/dashboard')
     if request.method == "POST":
         # get the name of the field
         email = request.form.get('email')
@@ -83,6 +81,8 @@ def userIndex():
 # user registration
 @app.route('/user/signup', methods=['POST', 'GET'])
 def userSignup():
+    if session.get('user_id'):
+        return redirect('/user/dashboard')
     if request.method == 'POST':
         # get all input field name
         fname = request.form.get('fname')
@@ -115,8 +115,19 @@ def userSignup():
 # user dashboard
 @app.route('/user/dashboard', methods=['POST', 'GET'])
 def userDashboard():
-    if session.get('username'):
-        return f'{session.get("username")}'
+    if not session.get('user_id'):
+        return redirect('/user/')
+
+    return render_template('user/dashboard.html', title='User Dashboard')
+
+
+# user logout
+@app.route('/user/logout')
+def userLogout():
+    if session.get('user_id'):
+        session['user_id'] = None
+        session['username'] = None
+        return redirect('/user/')
 
 
 if __name__ == "__main__":
