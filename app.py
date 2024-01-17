@@ -21,7 +21,7 @@ class User(db.Model):
     email = db.Column(db.String(255), nullable=False)
     edu = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.Integer, default=0, nullable=False)
+    status = db.Column(db.Integer, default=1, nullable=False)
 
     def __repr__(self):
         return f'User("{self.id}", "{self.lname}", "{self.fname}", "{self.email}", "{self.email}", "{self.username}", "{self.edu}", "{self.status}")'
@@ -124,10 +124,42 @@ def userDashboard():
 # user logout
 @app.route('/user/logout')
 def userLogout():
+    if not session.get('user_id'):
+        return redirect('/user/')
     if session.get('user_id'):
         session['user_id'] = None
         session['username'] = None
         return redirect('/user/')
+
+
+@app.route('/user/change-password', methods=['POST', 'GET'])
+def userChangePassword():
+    if not session.get('user_id'):
+        return redirect('/user/')
+
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if email == '' or password == '':
+            flash('Please fill the field', 'danger')
+            return redirect('/user/change-password')
+        else:
+            users = User.query.filter_by(email=email).first()
+            if users:
+                hash_password = bcrypt.generate_password_hash(password, 10)
+
+                # change password in db
+                User.query.filter_by(email=email).update({'password': hash_password})
+                db.session.commit()
+                flash('Password Change Successfully', 'success')
+                return redirect('/user/change-password')
+            else:
+                flash('Invalid Email', 'danger')
+                return redirect('/user/change-password')
+
+    else:
+        return render_template('/user/change-password.html', title='Change Password')
 
 
 if __name__ == "__main__":
