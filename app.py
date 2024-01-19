@@ -21,7 +21,7 @@ class User(db.Model):
     email = db.Column(db.String(255), nullable=False)
     edu = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.Integer, default=1, nullable=False)
+    status = db.Column(db.Integer, default=0, nullable=False)
 
     def __repr__(self):
         return f'User("{self.id}", "{self.lname}", "{self.fname}", "{self.email}", "{self.email}", "{self.username}", "{self.edu}", "{self.status}")'
@@ -117,8 +117,10 @@ def userSignup():
 def userDashboard():
     if not session.get('user_id'):
         return redirect('/user/')
-
-    return render_template('user/dashboard.html', title='User Dashboard')
+    if session.get('user_id'):
+        id = session.get('user_id')
+        users = User.query.filter_by(id=id).first()
+        return render_template('user/dashboard.html', title='User Dashboard', users=users)
 
 
 # user logout
@@ -160,6 +162,44 @@ def userChangePassword():
 
     else:
         return render_template('/user/change-password.html', title='Change Password')
+
+
+# user update profile
+@app.route('/user/update-profile', methods=['POST', 'GET'])
+def userUpdateProfile():
+    if not session.get('user_id'):
+        return redirect('/user/')
+
+    id = session.get('user_id')
+    users = User.query.get(id)
+
+    if request.method == 'POST':
+        # get all input field name
+        fname = request.form.get('fname')
+        lname = request.form.get('lname')
+        email = request.form.get('email')
+        username = request.form.get('username')
+        edu = request.form.get('edu')
+
+        update_data = {}
+
+        if fname:
+            update_data['fname'] = fname
+        if lname:
+            update_data['lname'] = lname
+        if email:
+            update_data['email'] = email
+        if username:
+            update_data['username'] = username
+        if edu:
+            update_data['edu'] = edu
+
+        User.query.filter_by(id=id).update(update_data)
+        db.session.commit()
+        flash('Profile update Successfully', 'success')
+        return redirect('/user/update-profile')
+    else:
+        return render_template('user/update-profile.html', title='Update Profile', users=users)
 
 
 if __name__ == "__main__":
