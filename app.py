@@ -27,10 +27,29 @@ class User(db.Model):
         return f'User("{self.id}", "{self.lname}", "{self.fname}", "{self.email}", "{self.email}", "{self.username}", "{self.edu}", "{self.status}")'
 
 
+# create admin Class
+class Admin(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(255), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+
+    def __repr__(self):
+        return f'Admin("{self.username}", "{self.id}")'
+
+
 # create table
 with app.app_context():
     # create table
     db.create_all()
+
+    # insert admin data one time only one time insert this data (create new Admin not exist User!)
+    # admin = Admin(username='Grayni', password=bcrypt.generate_password_hash('Grayni', 10))
+    # db.session.add(admin)
+    # db.session.commit()
+
+    # Delete Admin or User
+    # db.session.query(Admin).filter_by(username='Test').delete()
+    # db.session.commit()
 
 
 # main index
@@ -40,12 +59,52 @@ def index():
 
 
 # admin login
-@app.route('/admin/')
+@app.route('/admin/', methods=['POST', 'GET'])
 def adminIndex():
-    return render_template('admin/index.html', title='Admin Login')
+    # check the request is post or not
+    if request.method == 'POST':
+        # get the value of field
+        username = request.form.get('username')
+        password = request.form.get('password')
+        # check the value is not empty
+        if username == '' or password == '':
+            flash('Please fill all the fields', 'danger')
+            return redirect('/admin/')
+        else:
+            # login admin by username
+            admins = Admin().query.filter_by(username=username).first()
+            if admins and bcrypt.check_password_hash(admins.password, password):
+                session['admin_id'] = admins.id
+                session['admin_name'] = admins.username
+                flash('Login Successfully', 'success')
+                return redirect('/admin/dashboard')
+            else:
+                flash('Invalid Email and Password', 'danger')
+                return redirect('/admin/')
+    else:
+        return render_template('admin/index.html', title='Admin Login')
 
+
+# admin dashboard
+@app.route('/admin/dashboard', methods=['POST', 'GET'])
+def adminDashboard():
+    if not session.get('admin_id'):
+        return redirect('/admin/')
+    return render_template('/admin/dashboard.html', title='Admin Dashboard')
+
+
+# admin Logout
+@app.route('/admin/logout')
+def adminLogout():
+    if not session.get('admin_id'):
+        return redirect('/admin/')
+    if session.get('admin_id'):
+        session['admin_id'] = None
+        session['admin_name'] = None
+        return redirect('/')
 
 # --------------- user area -----------------------
+
 
 # user login
 @app.route('/user/', methods=['POST', 'GET'])
