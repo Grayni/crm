@@ -93,6 +93,23 @@ def adminDashboard():
     return render_template('/admin/dashboard.html', title='Admin Dashboard')
 
 
+# admin get all users
+@app.route('/admin/get-all-users', methods=['POST', 'GET'])
+def adminGetAllUsers():
+    users = User.query.all()
+    return render_template('admin/all-users.html', title='All Users', users=users)
+
+
+# admin approve user
+@app.route('/admin/approve-user/<int:id>', methods=['POST', 'GET'])
+def adminApprove(id):
+    User.query.filter_by(id=id).update({'status': 1})
+    db.session.commit()
+
+    flash('Approve successfully', 'success')
+    return redirect('/admin/get-all-users')
+
+
 # admin Logout
 @app.route('/admin/logout')
 def adminLogout():
