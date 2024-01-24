@@ -39,16 +39,19 @@ class Admin(db.Model):
 
 # create table
 with app.app_context():
+    # delete all tables
+    #db.drop_all()
+
     # create table
     db.create_all()
 
     # insert admin data one time only one time insert this data (create new Admin not exist User!)
-    # admin = Admin(username='Grayni', password=bcrypt.generate_password_hash('Grayni', 10))
+    # admin = Admin(username='Omenbest', password=bcrypt.generate_password_hash('omenpass', 10))
     # db.session.add(admin)
     # db.session.commit()
 
-    # Delete Admin or User
-    # db.session.query(Admin).filter_by(username='Test').delete()
+    # # Delete Admin or User
+    # db.session.query(Admin).filter_by(username='Grayni').delete()
     # db.session.commit()
 
 
@@ -100,9 +103,30 @@ def adminGetAllUsers():
     return render_template('admin/all-users.html', title='All Users', users=users)
 
 
+# change admin password
+@app.route('/admin/admin-change-password', methods=['POST', 'GET'])
+def adminChangePassword():
+    admin = Admin.query.get(1)
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username == '' or password == '':
+            flash('Please full the field', 'danger')
+            return redirect('/admin/admin-change-password')
+        else:
+            Admin.query.filter_by(username=username).update({'password': bcrypt.generate_password_hash(password,10)})
+            db.session.commit()
+            flash('Admin Password update successfully', 'success')
+            return redirect('/admin/admin-change-password')
+    else:
+        return render_template('admin/admin-change-password.html', title='Admin Change Password', admin=admin)
+
+
 # admin approve user
 @app.route('/admin/approve-user/<int:id>', methods=['POST', 'GET'])
 def adminApprove(id):
+    if not session.get('admin_id'):
+        return redirect('/admin/')
     User.query.filter_by(id=id).update({'status': 1})
     db.session.commit()
 
