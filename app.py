@@ -93,7 +93,14 @@ def adminIndex():
 def adminDashboard():
     if not session.get('admin_id'):
         return redirect('/admin/')
-    return render_template('/admin/dashboard.html', title='Admin Dashboard')
+
+    userAll = User.query.all()
+    userTotal = len(userAll)
+    userApproved = sum([1 for user in userAll if user.status == 1])
+    userDisApproved = userTotal - userApproved
+
+    total = {'userTotal': userTotal, 'userApproved': userApproved, 'userDisApproved': userDisApproved}
+    return render_template('/admin/dashboard.html', title='Admin Dashboard', total=total)
 
 
 # admin get all users
