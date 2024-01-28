@@ -95,6 +95,7 @@ def adminDashboard():
         return redirect('/admin/')
 
     userAll = User.query.all()
+
     userTotal = len(userAll)
     userApproved = sum([1 for user in userAll if user.status == 1])
     userDisApproved = userTotal - userApproved
@@ -106,8 +107,15 @@ def adminDashboard():
 # admin get all users
 @app.route('/admin/get-all-users', methods=['POST', 'GET'])
 def adminGetAllUsers():
-    users = User.query.all()
-    return render_template('admin/all-users.html', title='All Users', users=users)
+    if not session.get('admin_id'):
+        return redirect('/admin/')
+    if request.method == 'POST':
+        search = request.form.get('search')
+        users = User.query.filter(User.username.like('%'+search+'%')).all()
+        return render_template('admin/all-users.html', title='All Users', users=users)
+    else:
+        users = User.query.all()
+        return render_template('admin/all-users.html', title='All Users', users=users)
 
 
 # change admin password
